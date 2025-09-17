@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+  "id": "kernels-npc-generator",
+  "name": "Kernel's NPC Generator",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Generate random NPCs for your RPG campaigns with ease. Customize attributes, appearance, and backstory to bring your characters to life.",
+  "author": "Ramon Gebben",
+  "authorUrl": "https://ra-ge.net",
+  "fundingUrl": "https://obsidian.md/pricing",
+  "isDesktopOnly": true
 }
