@@ -7,7 +7,7 @@ import {
 } from '../data/professions';
 import { PERSONALITY_TRAITS, QUIRKS } from '../data/personality';
 import { RELIGION_DATA } from '../data/religions';
-import { SHOP_INVENTORIES } from '../data/shopInventory';
+// import { SHOP_INVENTORIES } from '../data/shopInventory';
 import { getPriceModifier } from '../utils/priceModifier';
 import { CULTURE_TO_RACE } from 'data/raceMapping';
 import { generateDescription } from './description';
@@ -37,29 +37,100 @@ const frontmatter = (obj: {
   );
 };
 
-const formatPrice = (price: number): string => {
-  if (price >= 1) return `${price.toFixed(0)} gp`;
-  if (price >= 0.1) return `${Math.round(price * 10)} sp`;
-  return `${Math.round(price * 100)} cp`;
-};
-
-const generateInventorySection = (
-  profession: ProfessionName,
-  population?: number,
-): string[] => {
+const generateInventorySection = (profession: ProfessionName): string[] => {
   if (!SHOPKEEPER_PROFESSIONS.includes(profession)) return [];
 
-  const items = SHOP_INVENTORIES[profession];
-  if (!items || items.length === 0) return [];
-
-  const priceFactor = getPriceModifier(population, profession);
-
   const lines = [
-    `### 🛒 Shop Inventory`,
-    ...items.map(item => {
-      const price = item.basePrice * priceFactor;
-      return `- ${item.name} — ${formatPrice(price)}`;
-    }),
+    '```dataviewjs',
+    `const npc = dv.current();
+const priceMod = parseFloat(npc.priceModifier) || 1;
+const profession = npc.profession?.toLowerCase();
+
+// Define rarity weights
+const rarityWeights = {
+  common: 10,
+  uncommon: 5,
+  rare: 2,
+  'very rare': 1,
+  legendary: 0,
+  artifact: 0,
+};
+
+// Dice roller for strings like "1d4+2"
+function rollDice(expr) {
+  const match = expr.match(/(\\d*)d(\\d+)([+-]\\d+)?/);
+  if (!match) return parseInt(expr) || 1;
+  const [_, dice, sides, mod] = match;
+  const rolls = Array.from({ length: parseInt(dice || 1) }, () =>
+    Math.floor(Math.random() * parseInt(sides)) + 1
+  );
+  const total = rolls.reduce((a, b) => a + b, 0) + (parseInt(mod) || 0);
+  return total;
+}
+
+// Unique weighted sampling
+function uniqueWeightedSample(items, weights, n) {
+  const result = [];
+  const usedIndices = new Set();
+
+  while (result.length < n && usedIndices.size < items.length) {
+    const totalWeight = weights.reduce((sum, w, i) => usedIndices.has(i) ? sum : sum + w, 0);
+    let r = Math.random() * totalWeight;
+
+    for (let i = 0; i < items.length; i++) {
+      if (usedIndices.has(i)) continue;
+      r -= weights[i];
+      if (r <= 0) {
+        result.push(items[i]);
+        usedIndices.add(i);
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+// Get matching items
+const allItems = dv.pages('"Items"')
+  .where(p => Array.isArray(p.soldBy) && p.soldBy.includes(profession))
+  .where(p => p.rarity && rarityWeights[p.rarity.toLowerCase()] > 0);
+
+const itemsArray = allItems.array();
+const weights = itemsArray.map(i => rarityWeights[i.rarity?.toLowerCase()] || 1);
+
+// Sample 8 unique items
+const chosen = uniqueWeightedSample(itemsArray, weights, 8);
+
+// Prepare and sort results
+const results = chosen.map(p => {
+  const base = p.price ?? 0;
+  const final = base * priceMod;
+  const stock = typeof p.stock === 'string' ? rollDice(p.stock) : (p.stock ?? 1);
+  return {
+    name: p.name,
+    rarity: p.rarity,
+    base: (base / 10).toFixed(2),
+    final: (final / 10).toFixed(2),
+    stock,
+  };
+}).sort((a, b) => {
+  const wA = rarityWeights[a.rarity.toLowerCase()] || 0;
+  const wB = rarityWeights[b.rarity.toLowerCase()] || 0;
+  return wB - wA; // Sort from high weight to low → common on top
+});
+
+// Render
+if (results.length === 0) {
+  dv.paragraph(\`No inventory found for profession: **\${profession}**\`);
+} else {
+  dv.header(3, '🧾 Shop Inventory');
+  dv.table(
+    ['Item', 'Rarity', 'Base Price', \`Adjusted Price (×\${priceMod.toFixed(2)})\`, 'Stock'],
+    results.map(i => [i.name, i.rarity, \`\${i.base} gp\`, \`\${i.final} gp\`, i.stock])
+  );
+}`,
+    '```',
   ];
 
   return lines;
@@ -112,22 +183,23 @@ export const generateNpcMarkdown = (
     frontmatter({
       race,
       profession: profession.name,
+      priceModifier: getPriceModifier(population, profession.name),
       location: locationName,
+      standing: 0,
       culture,
     }),
     `## 🧙 NPC: ${fullName}`,
     `- **Race**: ${race}`,
     `- **Profession**: ${capitalize(profession.name)}`,
-    `- **Culture**: ${culture}`,
-    `- **Religion**: ${religion}`,
-    `- **Origin**: ${locationName}${state ? `, ${state}` : ''}`,
+    `- **Culture**: [[${culture}]]`,
+    `- **Religion**: [[${religion}]]`,
+    `- **Origin**: [[${locationName}]]${state ? `, [[${state}]]` : ''}`,
     `- **Personality**: ${trait}`,
     `- **Quirk**: ${quirk}`,
     `- **Description**: ${description}`,
     ...(flavorLine ? [`- **Motif**: ${flavorLine}`] : []),
-    `- **Standing**: 0 (Neutral)`,
     ``,
-    ...generateInventorySection(profession.name, population),
+    ...generateInventorySection(profession.name),
   ];
 
   return lines.join('\n');

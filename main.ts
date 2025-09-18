@@ -47,17 +47,7 @@ export default class NpcGeneratorPlugin extends Plugin {
     const markdown = generateNpcMarkdown(npcContext, profession);
     const npcName = markdown.match(/## 🧙 NPC: (.+)/)?.[1] ?? 'Unnamed NPC';
 
-    const linkPath = await this.createNpcFile(
-      markdown,
-      context.locationName,
-      npcName,
-    );
-
-    if (linkPath) {
-      // Insert the link at the cursor location
-      const wikiLink = `[[${npcName}]]`;
-      editor.replaceSelection(wikiLink);
-    }
+    await this.createNpcFile(markdown, context.locationName, npcName);
   }
 
   async createNpcFile(
