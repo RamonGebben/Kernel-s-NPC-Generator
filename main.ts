@@ -30,14 +30,11 @@ export default class NpcGeneratorPlugin extends Plugin {
               .setTitle('Add Statblock for current NPC')
               .setIcon('user-plus')
               .onClick(() => {
-                console.log('CLicked!! ');
                 const modal = new StatblockPromptModal(
                   this.app,
                   async (cr, npcClass: NPCClass) => {
                     const name = file.basename;
                     const block = generateNpcStatblock(name, cr, npcClass);
-
-                    console.log('---<<', block);
 
                     const currentContent = await this.app.vault.read(file);
                     await this.app.vault.modify(
@@ -74,7 +71,7 @@ export default class NpcGeneratorPlugin extends Plugin {
     if (!profession) return;
 
     const npcContext: NpcContext = { ...context };
-    const markdown = generateNpcMarkdown(npcContext, profession);
+    const markdown = await generateNpcMarkdown(npcContext, profession);
     const npcName = markdown.match(/## 🧙 NPC: (.+)/)?.[1] ?? 'Unnamed NPC';
 
     await this.createNpcFile(markdown, context.locationName, npcName);

@@ -1,5 +1,5 @@
 import { NpcContext } from '../utils/parseFrontmatter';
-import { NAME_DATA } from '../data/names';
+import { Gender, getRandomName } from 'utils/getRandomName';
 import {
   PROFESSIONS,
   SHOPKEEPER_PROFESSIONS,
@@ -7,9 +7,7 @@ import {
 } from '../data/professions';
 import { PERSONALITY_TRAITS, QUIRKS } from '../data/personality';
 import { RELIGION_DATA } from '../data/religions';
-// import { SHOP_INVENTORIES } from '../data/shopInventory';
 import { getPriceModifier } from '../utils/priceModifier';
-import { CULTURE_TO_RACE } from 'data/raceMapping';
 import { generateDescription } from './description';
 
 const getRandom = <T>(arr: T[]): T =>
@@ -136,24 +134,16 @@ if (results.length === 0) {
   return lines;
 };
 
-export const generateNpcMarkdown = (
+export const generateNpcMarkdown = async (
   context: NpcContext,
   providedProf: ProfessionName,
-): string => {
+): Promise<string> => {
   const { culture, religion, state, population, locationName } = context;
 
-  const nameSet = NAME_DATA[culture];
   const religionData = RELIGION_DATA[religion];
+  const gender = getRandom(['male', 'female', 'neutral'] as Gender[]);
 
-  if (!nameSet) throw new Error(`Missing name set for culture: ${culture}`);
-
-  const gender = getRandom(['male', 'female', 'neutral']);
-  const firstName = getRandom(
-    nameSet[gender as keyof typeof nameSet] ?? nameSet.neutral ?? ['Alex'],
-  );
-  const lastName = getRandom(nameSet.surnames ?? ['Doe']);
-
-  const fullName = `${firstName} ${lastName}`;
+  const { fullName, race } = await getRandomName(culture, gender);
 
   // Choose profession
   let profession = providedProf
@@ -173,9 +163,6 @@ export const generateNpcMarkdown = (
     ? getRandom(religionData.motifs)
     : undefined;
   const flavorLine = motif ? `Often seen with ${motif}.` : '';
-
-  const raceOptions = CULTURE_TO_RACE[culture];
-  const race = raceOptions ? getRandom(raceOptions) : 'Human';
 
   const description = generateDescription(race, profession, culture);
 

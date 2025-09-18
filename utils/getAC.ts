@@ -8,7 +8,6 @@ export const getAC = (
   detail: ClassProfile,
 ): number => {
   const base = detail.ac ?? 12;
-  console.log('base', base, getModifier(stats.dex), getModifier(stats.con));
 
   // Use class-specific scaling logic
   if (cls === 'Barbarian') {
