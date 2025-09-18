@@ -5,22 +5,52 @@ import { generateNpcMarkdown } from 'generators/npcGenerator';
 import { getFrontmatterData } from 'utils/getFrontmatterData';
 import ProfessionSuggestModal from 'prompts/ProfessionSuggestModal';
 import { getRandom } from 'utils/getRandom';
+import { generateNpcStatblock } from 'generators/statblock';
+import StatblockPromptModal from 'prompts/StatblockPromptModal';
+import { NPCClass } from 'data/npcClasses';
 
 export default class NpcGeneratorPlugin extends Plugin {
   async onload() {
     this.registerEvent(
       this.app.workspace.on('editor-menu', (menu, editor, view) => {
         const file = view.file;
-        if (!file || !file.path.startsWith('World/burgs')) return;
+        if (file && file.path.startsWith('World/burgs')) {
+          menu.addItem(item => {
+            item
+              .setTitle('Create NPC for this Location')
+              .setIcon('user-plus')
+              .onClick(() => {
+                this.createNpcFromFile(file, editor);
+              });
+          });
+        }
+        if (file && file.path.startsWith('World/NPCs')) {
+          menu.addItem(item => {
+            item
+              .setTitle('Add Statblock for current NPC')
+              .setIcon('user-plus')
+              .onClick(() => {
+                console.log('CLicked!! ');
+                const modal = new StatblockPromptModal(
+                  this.app,
+                  async (cr, npcClass: NPCClass) => {
+                    const name = file.basename;
+                    const block = generateNpcStatblock(name, cr, npcClass);
 
-        menu.addItem(item => {
-          item
-            .setTitle('Create NPC for this Location')
-            .setIcon('user-plus')
-            .onClick(() => {
-              this.createNpcFromFile(file, editor);
-            });
-        });
+                    console.log('---<<', block);
+
+                    const currentContent = await this.app.vault.read(file);
+                    await this.app.vault.modify(
+                      file,
+                      `${currentContent}\n\n${block}`,
+                    );
+                    new Notice('Statblock added!');
+                  },
+                );
+                modal.open();
+              });
+          });
+        }
       }),
     );
   }

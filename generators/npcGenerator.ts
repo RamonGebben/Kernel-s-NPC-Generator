@@ -127,7 +127,7 @@ if (results.length === 0) {
   dv.header(3, '🧾 Shop Inventory');
   dv.table(
     ['Item', 'Rarity', 'Base Price', \`Adjusted Price (×\${priceMod.toFixed(2)})\`, 'Stock'],
-    results.map(i => [i.name, i.rarity, \`\${i.base} gp\`, \`\${i.final} gp\`, i.stock])
+    results.map(i => [\`[[\${i.name}]]\` , i.rarity, \`\${i.base} gp\`, \`\${i.final} gp\`, i.stock])
   );
 }`,
     '```',
