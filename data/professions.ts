@@ -71,4 +71,4 @@ export const SHOPKEEPER_PROFESSIONS: ProfessionName[] = [
   'baker',
   'herbalist',
   'innkeeper',
-] as const;
+];
